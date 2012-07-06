@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+	<!-- Copyright (C) 2007 The Android Open Source Project -->
+
+<resources>
+	<color name="white">#fff</color>
+	<color name="black">#000</color>
+	<color name="purple_start">#9b256b</color>
+	<color name="purple_end">#5d2761</color>
+	<color name="blue_start">#0f93b8</color>
+	<color name="blue_end">#0f93b8</color>
+	<color name="lgrey_start">#BFC0C0</color>
+	<color name="lgrey_end">#AEB2B7</color>
+	<color name="dgrey_start">#4E4F50</color>
+	<color name="dgrey_end">#2C3137</color>
+	<color name="item_grey_start">#B4B8BA</color>
+	<color name="item_grey_end">#62707C</color>
+	<color name="black_start">#333333</color>
+	<color name="black_end">#181818</color>
+	<color name="grey_start">#CBCBCB</color>
+	<color name="grey_end">#8C9DAE</color>
+	<color name="blue_badges_mayor">#095b72</color>
+	<color name="vlgrey">#EEEEEE</color>
+	<color name="color_score_list_adapter_highlight">#EEEEEE</color>
+	<color name="color_score_mayor_section_background">#DDDDDD</color>
+	<color name="color_bright_green">#a6da00</color>
+	<color name="tip_detail_actions_background">#c7c7c7</color>
+	<color name="user_details_activity_general">#FF555555</color>
+	<color name="transparent">#00000000</color>
+	<color name="titletextcolor">#ffffffff</color>
+	<color name="blue">#3366CC</color>
+	<color name="blue_add">#96BFE9</color>
+	<color name="bd_1">#66ff00</color>
+	<color name="red">#ff6666</color>
+	<color name="gray">#9B9B9B</color>
+	 <color name="background">#ffffffff</color>
+    <color name="white_background">#ffffffff</color>
+    <color name="traincode_textcolor">#ff339966</color>
+    <color name="yellow">#ffffd700</color>
+    <color name="green">#ff87c03f</color>
+    <color name="grey">#ffcfcfcf</color>
+    <color name="orange">#ffffa500</color>
+    <color name="cornflowerblue">#ff6495ed</color>
+    <color name="lightsteelblue">#ffb0c4de</color>
+    <color name="pink">#ffffc0cb</color>
+    <color name="violet">#ffffc0cb</color>
+    <color name="cyan">#ff00ffff</color>
+    <color name="chocolate">#ffd2691e</color>
+    <color name="coral">#ffff7f50</color>
+    <color name="tomato">#ffff6347</color>
+    <color name="gold">#ffffd700</color>
+    <color name="lavender">#ffe6e6fa</color>
+    <color name="bg">#ffebece8</color>
+    <color name="divider">#ffd8d8d8</color>
+    <color name="text">#ff686868</color>
+    <color name="myGray">#ff272727</color>
+    <color name="myGreen">#ffbfc1ff</color>
+    <color name="translucent_dark">#99000000</color>
+    <color name="translucenter_dark">#bf000000</color>
+    <color name="bright_foreground_dark">#ffffffff</color>
+    <color name="help_button_view">#ffcccccc</color>
+	
+	
+</resources>

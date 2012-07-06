@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/layout_books"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    android:padding="0px" >
+
+    <Button
+        android:id="@+id/invisview"
+        android:layout_width="1dip"
+        android:layout_height="1dip" />
+
+    <LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/layout_books"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:padding="0px" >
+
+        <TextView
+            android:id="@+id/invisview"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_weight="1"
+            android:visibility="invisible" />
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_weight="3"
+            android:paddingTop="20dip"
+            android:orientation="vertical" >
+
+            <ProgressBar
+                android:id="@+id/changeview"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:layout_marginTop="20dip"
+                android:layout_weight="9"
+                android:background="@drawable/back_home_selector"
+                android:visibility="gone" />
+
+            <ListView
+                android:id="@+id/subjectlist"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:layout_marginLeft="5.0dip"
+                android:layout_marginRight="3.0dip"
+                android:layout_weight="2"
+                android:background="#8E2323"
+                android:clickable="true"
+                android:visibility="gone" >
+            </ListView>
+        </LinearLayout>
+    </LinearLayout>
+
+    <ViewFlipper
+        android:id="@+id/topic_viewflipper"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_below="@+id/title"
+        android:layout_centerHorizontal="true"
+        android:layout_weight="15"
+        android:background="#38B0DE"
+        android:visibility="gone" >
+    </ViewFlipper>
+
+
+    <RelativeLayout
+        android:id="@+id/loading"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" >
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:background="#AA111111"
+            android:gravity="center"
+            android:padding="8dip" >
+
+            <ProgressBar
+                android:id="@+id/progress"
+                android:layout_width="24dip"
+                android:layout_height="24dip"
+                android:layout_marginBottom="6dip"
+                android:layout_marginTop="6dip"
+                android:indeterminate="true"
+                android:indeterminateDrawable="@drawable/iamge_progress" />
+
+            <TextView
+                android:id="@+id/txt_loading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_marginLeft="8dip"
+                android:layout_toRightOf="@id/progress"
+                android:shadowColor="#000000"
+                android:shadowDx="0"
+                android:shadowDy=".5"
+                android:shadowRadius="1"
+                android:text="正在获取数据"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/reloading"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" >
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:background="#AA111111"
+            android:gravity="center"
+            android:padding="8dip" >
+
+            <Button
+                android:id="@+id/txt_reloading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_marginLeft="8dip"
+                android:layout_toRightOf="@id/progress"
+                android:background="@drawable/back_home_selector"
+                android:shadowColor="#000000"
+                android:shadowDx="0"
+                android:shadowDy=".5"
+                android:shadowRadius="1"
+                android:text="没有相应的话题，点击重试或按返回键退出"
+                android:textColor="#2F4F4F" />
+        </LinearLayout>
+    </RelativeLayout>
+
+</LinearLayout>
