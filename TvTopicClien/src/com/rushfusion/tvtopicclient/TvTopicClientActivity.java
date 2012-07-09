@@ -631,7 +631,7 @@ public class TvTopicClientActivity implements Runnable {
 	}
 	View initviewfilpper() {
 		LayoutInflater inflater = LayoutInflater.from(mContext);
-		View viewfilpperitem = inflater.inflate(R.layout.mytopic_1, null);
+		View viewfilpperitem = inflater.inflate(R.layout.mytopic_2, null);
 		tv_homeline_userimage = (ImageView) viewfilpperitem
 				.findViewById(R.id.tv_homeline_userimage);
 		// tv_homeline_userimage.setAlpha(100);
