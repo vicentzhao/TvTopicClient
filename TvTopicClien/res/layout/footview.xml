@@ -9,8 +9,10 @@
         android:id="@+id/loading"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
+        android:background="@drawable/itme_selector"
         android:layout_gravity="center"
         android:gravity="center"
+        android:onClick="false"
         android:orientation="horizontal" >
         <ProgressBar
             android:id="@+id/footprogress"
@@ -18,12 +20,14 @@
               android:indeterminateDrawable="@drawable/iamge_progress"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+             android:onClick="false"
             android:layout_gravity="center_vertical"
             android:indeterminateBehavior="repeat" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="left|center"
+             android:onClick="false"
             android:textSize="28sp"
             android:padding="3.0px"
             android:text="加载更多。。"
