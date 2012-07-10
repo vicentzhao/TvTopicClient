@@ -76,7 +76,6 @@
         <ListView
             android:id="@+id/subjectlist"
             android:layout_weight="2"
-            android:scrollbars="none"
             android:dividerHeight="13dip"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
@@ -111,13 +110,11 @@
     </LinearLayout>
 </LinearLayout>
     <ViewFlipper
-        android:visibility="visible"
+        android:visibility="gone"
         android:layout_weight="14"
         android:id="@+id/topic_viewflipper"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:layout_below="@+id/title"
-        android:layout_centerHorizontal="true"
          >
     </ViewFlipper>
 <RelativeLayout 
@@ -141,17 +138,17 @@
 		</RelativeLayout>
 <RelativeLayout 
 			android:id="@+id/reloading" android:layout_width="fill_parent"
+			android:gravity="bottom"
 			android:layout_height="wrap_content" android:visibility="gone">
 			<LinearLayout android:layout_width="fill_parent"
-				android:layout_height="wrap_content" android:background="#AA111111"
-				android:padding="8dip" android:gravity="center">
-				<Button android:textColor="#2F4F4F" android:shadowColor="#000000"
-				    android:background="@drawable/back_home_selector"
-					android:id="@+id/txt_reloading" android:shadowDx="0"
-					android:shadowDy=".5" android:shadowRadius="1"
-					android:layout_toRightOf="@id/progress" android:layout_marginLeft="8dip"
+				android:layout_height="wrap_content" 
+				android:padding="8dip" android:gravity="center_horizontal">
+				<Button android:textColor="#2F4F4F" 
+				    android:layout_marginTop="10dip"
+					android:id="@+id/txt_reloading" 
+					 android:layout_marginLeft="8dip"
 					android:text="没有相应的话题，点击重试或按返回键退出" android:layout_width="wrap_content"
-					android:layout_height="wrap_content" android:layout_alignParentTop="true" />
+					android:layout_height="wrap_content"   />
 			</LinearLayout>
 		</RelativeLayout>
 </LinearLayout>

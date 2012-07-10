@@ -9,8 +9,8 @@ public class SourceDownLoader {
 	public static JSONArray getall(String path) throws Exception {
         URL url =new URL(path);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setConnectTimeout(60*1000);
-        conn.setReadTimeout(60*1000);
+        conn.setConnectTimeout(5*1000);
+        conn.setReadTimeout(5*1000);
         InputStream is = conn.getInputStream();
         @SuppressWarnings("static-access")
 		String  json = ju.InputStreamTOString(is);
