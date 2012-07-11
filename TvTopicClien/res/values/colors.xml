@@ -58,6 +58,8 @@
     <color name="translucenter_dark">#bf000000</color>
     <color name="bright_foreground_dark">#ffffffff</color>
     <color name="help_button_view">#ffcccccc</color>
+    <color name="processbardraw">#cc99cc</color>
+    <color name="processbarpress">#996699</color>
 	
 	
 </resources>

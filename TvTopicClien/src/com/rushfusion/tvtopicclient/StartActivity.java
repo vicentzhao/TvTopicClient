@@ -13,7 +13,7 @@ public class StartActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		HashMap<String,Object> mparms = new HashMap<String, Object>();
-		mparms.put("PROGRAM_NAME", "Õ½¹ú");
+		mparms.put("PROGRAM_NAME", "ss");
 		ViewGroup mRoot = (ViewGroup) getWindow().getDecorView();
 		TvTopicClient y = new TvTopicClient();
 		y.init(this, mRoot,mparms);

@@ -6,7 +6,7 @@ import java.io.InputStream;
 import org.json.JSONArray;
 
 public class JsonUtil {
-	    final static int BUFFER_SIZE = 4096; 
+	    final static int BUFFER_SIZE = 4*4096; 
 	    public JSONArray getSource(String path)throws Exception{
 	    	SourceDownLoader sc = new SourceDownLoader();
 			JSONArray array = sc.getall(path);

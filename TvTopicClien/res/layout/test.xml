@@ -40,7 +40,6 @@
                 android:layout_height="fill_parent"
                 android:layout_marginTop="20dip"
                 android:layout_weight="9"
-                android:background="@drawable/back_home_selector"
                 android:visibility="gone" />
 
             <ListView
@@ -127,7 +126,6 @@
                 android:layout_alignParentTop="true"
                 android:layout_marginLeft="8dip"
                 android:layout_toRightOf="@id/progress"
-                android:background="@drawable/back_home_selector"
                 android:shadowColor="#000000"
                 android:shadowDx="0"
                 android:shadowDy=".5"

@@ -65,7 +65,7 @@
 					android:id="@+id/txt_loading" android:shadowDx="0"
 					android:shadowDy=".5" android:shadowRadius="1"
 					android:layout_toRightOf="@id/progress" android:layout_marginLeft="8dip"
-					android:text="正在努力加载中" android:layout_width="wrap_content"
+					android:text="正在努力加载中.." android:layout_width="wrap_content"
 					android:layout_height="wrap_content" android:layout_alignParentTop="true" />
 			</LinearLayout>
 		</RelativeLayout>
@@ -140,16 +140,25 @@
 <RelativeLayout 
 			android:id="@+id/reloading" android:layout_width="fill_parent"
 			android:gravity="bottom"
-			android:layout_height="wrap_content" android:visibility="gone">
+			android:background="#9999cc"
+			android:layout_height="wrap_content" android:visibility="visible">
 			<LinearLayout android:layout_width="fill_parent"
-				android:layout_height="wrap_content" 
-				android:padding="8dip" android:gravity="center_horizontal">
-				<Button android:textColor="#2F4F4F" 
-				    android:layout_marginTop="10dip"
+				android:layout_height="wrap_content"
+				android:orientation="horizontal" 
+				 android:gravity="center_horizontal">
+		<Button android:textColor="#2F4F4F" 
+		    		android:background="@drawable/button_selector"
 					android:id="@+id/txt_reloading" 
-					 android:layout_marginLeft="8dip"
-					android:text="没有相应的话题，点击重试或按返回键退出" android:layout_width="wrap_content"
+					android:text="点击重试或按返回键退出" android:layout_width="wrap_content"
 					android:layout_height="wrap_content"   />
-			</LinearLayout>
+		<TextView 
+		       		android:textColor="#cc99cc"
+				     android:textSize="24sp"
+					 android:layout_marginLeft="8dip"
+					 android:gravity="center_vertical"
+					 android:layout_gravity="center_vertical"
+					android:text="没有获取数据，5秒后自动刷新" android:layout_width="wrap_content"
+					android:layout_height="wrap_content"  />
+	    </LinearLayout>
 		</RelativeLayout>
 </LinearLayout>

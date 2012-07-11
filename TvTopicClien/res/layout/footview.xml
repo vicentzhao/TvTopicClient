@@ -4,7 +4,7 @@
   android:layout_width="fill_parent"
   android:orientation="vertical"
   android:onClick="false"
-  android:layout_height="400dip">
+  android:layout_height="fill_parent">
   <LinearLayout
         android:id="@+id/loading"
         android:layout_width="fill_parent"
@@ -15,8 +15,8 @@
         android:onClick="false"
         android:orientation="horizontal" >
         <ProgressBar
-            android:id="@+id/footprogress"
             style="?android:progressBarStyleSmallInverse"
+            android:id="@+id/footprogress"
               android:indeterminateDrawable="@drawable/iamge_progress"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -28,9 +28,9 @@
             android:layout_height="wrap_content"
             android:gravity="left|center"
              android:onClick="false"
-            android:textSize="28sp"
+            android:textSize="20sp"
             android:padding="3.0px"
-            android:text="加载更多。。"
-            android:textColor="#ff000000" />
+            android:text="正在加载更多数据。。"
+            android:textColor="#996699" />
     </LinearLayout>
 </LinearLayout>
