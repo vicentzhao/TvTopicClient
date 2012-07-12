@@ -98,13 +98,13 @@
         android:layout_gravity="center"
         android:src="@drawable/error"
         />
-    <Button 
+    <ImageButton 
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="@drawable/exchange_button_download_click"
         android:id="@+id/errorreloading"
         android:gravity="center"
         android:layout_gravity="center"
-        android:text="重新加载"
         />
 </LinearLayout>
 </LinearLayout>
@@ -149,7 +149,6 @@
 		  <ImageButton   
 		    		android:src="@drawable/exchange_button_download"
 					android:id="@+id/txt_reloading" 
-					android:text="点击重试或按返回键退出" 
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"   />
 		<TextView 

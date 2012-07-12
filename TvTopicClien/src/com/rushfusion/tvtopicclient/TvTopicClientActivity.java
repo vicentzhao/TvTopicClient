@@ -77,7 +77,7 @@ public class TvTopicClientActivity implements Runnable {
 	private long oldTimeMillis;
 	private StringBuffer showTopic;
 	private LinearLayout errorLinelayout;
-	private Button errorreloading;
+	private ImageButton errorreloading;
 	private int animList[] = new int[] { R.anim.push_in_left,
 			R.anim.push_out_left, };
 	private Button invisview;
@@ -173,6 +173,7 @@ public class TvTopicClientActivity implements Runnable {
 						return ;
 					}else{
 					topicpage = topicpage + 1;
+					System.out.println("topicpage========>"+topicpage);
 					if(null!=myAddTask){
 						myAddTask.cancel(true);
 						myAddTask = new myTopicListAdd();
@@ -307,7 +308,7 @@ public class TvTopicClientActivity implements Runnable {
 		mAdapter=new myAdapter();
 		programJsonArray = new JSONArray();
 		topiclistview = View.inflate(mContext, R.layout.test1, null);
-		errorreloading=(Button) topiclistview.findViewById(R.id.errorreloading);
+		errorreloading=(ImageButton) topiclistview.findViewById(R.id.errorreloading);
 		errorLinelayout=(LinearLayout) topiclistview.findViewById(R.id.errorLinelayout);
 		vf = (ViewFlipper) topiclistview.findViewById(R.id.topic_viewflipper);
 		viewfillper = (LinearLayout) topiclistview
@@ -340,11 +341,6 @@ public class TvTopicClientActivity implements Runnable {
 	public ArrayList<Topic> getTopicList() {
 		listview.setClickable(true);
 		topicList = new ArrayList<Topic>();
-		try {
-			Thread.sleep(5000);
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
-		}
 		if (programId == 0) {
 			Toast.makeText(mContext, "数据库中没有相应的评论", Toast.LENGTH_SHORT).show();
 			Toast.makeText(mContext, "按返回退出", Toast.LENGTH_SHORT).show();
@@ -380,6 +376,7 @@ public class TvTopicClientActivity implements Runnable {
 			try {
 				JsonUtil ju = new JsonUtil();
 				JSONArray PostJsonArray = ju.getSource(postPath);
+				System.out.println("postpath===="+postPath);
 				for (int i = 0; i < PostJsonArray.length(); i++) {
 					JSONObject jsPost = PostJsonArray.getJSONObject(i);
 					JSONObject2Post jt = new JSONObject2Post();
@@ -504,6 +501,10 @@ public class TvTopicClientActivity implements Runnable {
 				}
 				else{
 					errorLinelayout.setVisibility(View.VISIBLE);
+					topicpage =1;
+					listview.setVisibility(View.GONE);
+					errorreloading.requestFocus();
+					errorreloading.setFocusable(true);
 				}
 				break;
 			case RefalshListviewData:
@@ -512,7 +513,14 @@ public class TvTopicClientActivity implements Runnable {
 			case autoReflushList:
 				int v = errorLinelayout.getVisibility();
 				if(v==View.VISIBLE){
-					errorLinelayout.setVisibility(View.GONE);
+					errorLinelayout.post(new Runnable() {
+						
+						@Override
+						public void run() {
+							// TODO Auto-generated method stub
+							errorLinelayout.setVisibility(View.GONE);
+						}
+					});
 				if(listTask!=null){
 					listTask.cancel(true);
 				listTask=new ListTask();
@@ -529,7 +537,7 @@ public class TvTopicClientActivity implements Runnable {
 					if(visibility==View.VISIBLE){
 						reloading.setVisibility(View.GONE);
 						if(isFirstPostLoading){
-							if(autoReflushPostViewTask!=null){
+							if(reflushPostViewTask!=null){
 								reflushPostViewTask.cancel(true);
 								reflushPostViewTask=new reflushPostView();
 								reflushPostViewTask.execute();
@@ -779,14 +787,19 @@ public class TvTopicClientActivity implements Runnable {
 			LoadMoreSize=10;
 			myTopicList =new ArrayList<Topic>();
 			System.out.println("listtask我已经执行了");
-			viewfillper.setVisibility(View.VISIBLE);
-			rlayoutLoading.setVisibility(View.VISIBLE);
-			listview.removeFooterView(footviewNoMore);
-			listview.removeFooterView(footview);
-			footview.setVisibility(View.GONE);
-			footviewNoMore.setVisibility(View.GONE);
-			listview.addFooterView(footview);
-			footview.setVisibility(View.VISIBLE);
+			viewfillper.post(new Runnable() {
+				@Override
+				public void run() {
+					viewfillper.setVisibility(View.VISIBLE);
+					rlayoutLoading.setVisibility(View.VISIBLE);
+					listview.removeFooterView(footviewNoMore);
+					listview.removeFooterView(footview);
+					footview.setVisibility(View.GONE);
+					footviewNoMore.setVisibility(View.GONE);
+					listview.addFooterView(footview);
+					footview.setVisibility(View.VISIBLE);
+				}
+			});
 			super.onPreExecute();
 		}
 		@Override
@@ -795,7 +808,6 @@ public class TvTopicClientActivity implements Runnable {
 			rlayoutLoading.setVisibility(View.GONE);
 			listview.setVisibility(View.GONE);
 			mAdapter.setList(topicList);
-	//	    mAdapter.notifyDataSetChanged();
 			listview.setAdapter(mAdapter);
 			listview.setVisibility(View.VISIBLE);
 			listview.requestFocus();
@@ -806,6 +818,9 @@ public class TvTopicClientActivity implements Runnable {
 			}else{
 				rlayoutLoading.setVisibility(View.GONE);
 				errorLinelayout.setVisibility(View.VISIBLE);
+				topicpage=1;
+				errorreloading.requestFocus();
+				errorreloading.setFocusable(true);
 			}
 			super.onPostExecute(result);
 		}
@@ -920,7 +935,21 @@ public class TvTopicClientActivity implements Runnable {
 		@Override
 		public void onClick(View v) {
 			reloading.setVisibility(View.GONE);
-			if(autoReflushPostViewTask!=null){
+			
+			    if(null!=currenTopic){
+			    	if(autoReflushPostViewTask!=null){
+						autoReflushPostViewTask.cancel(true);
+						autoReflushPostViewTask=new autoReflushPostView();
+						autoReflushPostViewTask.execute();
+						autoReflushPostViewTask=null;
+					}else{
+						autoReflushPostViewTask=new autoReflushPostView();
+						autoReflushPostViewTask.execute();	
+						autoReflushPostViewTask=null;
+					}
+			    }
+			    else{
+			if(reflushPostViewTask!=null){
 				reflushPostViewTask.cancel(true);
 				reflushPostViewTask=new reflushPostView();
 				reflushPostViewTask.execute();
@@ -930,6 +959,7 @@ public class TvTopicClientActivity implements Runnable {
 				reflushPostViewTask.execute();	
 				reflushPostViewTask=null;
 			}
+		}
 		}
 	};
 	OnClickListener errorreloadingListener = new OnClickListener() {
@@ -1074,7 +1104,6 @@ public class TvTopicClientActivity implements Runnable {
 						}
 						super.onPostExecute(result);
 					}
-					//開啟定時循環展示
 					@Override
 					protected void onPreExecute() {
 						showProgress(rlLoading);
@@ -1116,7 +1145,7 @@ public class TvTopicClientActivity implements Runnable {
 				handler.sendMessage(message);
 			}
 		};
-		autotimer.schedule(autotimertask, 1000 * 60, 60*4*1000);
+		autotimer.schedule(autotimertask, 1000 * 60, 3*60*1000);
 	}
 	//自动刷新评论列表
 	public void autoReflushPostList(){
@@ -1128,18 +1157,15 @@ public class TvTopicClientActivity implements Runnable {
 				handler.sendMessage(message);
 			}
 		};
-		autotimer.schedule(autotimertask, 1000 * 60*2, 3*60*1000);
+		autotimer.schedule(autotimertask, 1000 * 60, 2*60*1000);
 	}
 	//執行的asyn方法，定时刷新时执行
 		class  autoReflushPostView extends AsyncTask{
 						@Override
 						protected void onPostExecute(Object result) {
 							hideProgress(rlLoading);
-							if(viewfillper.getVisibility()!=View.VISIBLE){
-								invisview.requestFocus();
-								invisview.setFocusable(true);
-								invisview.setOnKeyListener(vfKeyListener);
-							}
+							
+							
 							if(postList.size()!=0){
 							setVf();
 							vf.setVisibility(View.VISIBLE);
@@ -1158,6 +1184,15 @@ public class TvTopicClientActivity implements Runnable {
 						protected void onPreExecute() {
 							showProgress(rlLoading);
 							reloading.setVisibility(View.GONE);
+							if(viewfillper.getVisibility()==View.VISIBLE){
+								listview.requestFocus();
+								listview.setFocusable(true);
+							}
+							else{
+								invisview.requestFocus();
+								invisview.setFocusable(true);
+								invisview.setOnKeyListener(vfKeyListener);
+							}
 							super.onPreExecute();
 						}
 						@Override
