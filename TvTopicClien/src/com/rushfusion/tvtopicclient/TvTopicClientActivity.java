@@ -24,15 +24,19 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
+
 import com.rushfusion.tvtopicclient.domain.Post;
 import com.rushfusion.tvtopicclient.domain.Program;
 import com.rushfusion.tvtopicclient.domain.Topic;
+import com.rushfusion.tvtopicclient.util.ImageCache;
 import com.rushfusion.tvtopicclient.util.ImageDownloder;
 import com.rushfusion.tvtopicclient.util.JSONObject2Post;
 import com.rushfusion.tvtopicclient.util.JSONObject2Program;
@@ -52,8 +56,8 @@ public class TvTopicClientActivity implements Runnable {
 	private TimerTask imagetask;
 	private ImageView tv_homeline_userimage;
 	private TextView tv_homeline_username;
-	private TextView tv_homeline_comment;
-	private ImageView tv_homeline_filmimage;
+	private TextView tv_homeline_topic_comment;
+	private TextView tv_homeline_posts_comment;
 	private TextView tv_homeline_filmname;
 	private HashMap<String, Object> proHashMap;
 	private ImageDownloder downloder;
@@ -72,6 +76,8 @@ public class TvTopicClientActivity implements Runnable {
 	private JSONArray jsonArray;
 	private long oldTimeMillis;
 	private StringBuffer showTopic;
+	private LinearLayout errorLinelayout;
+	private Button errorreloading;
 	private int animList[] = new int[] { R.anim.push_in_left,
 			R.anim.push_out_left, };
 	private Button invisview;
@@ -86,504 +92,340 @@ public class TvTopicClientActivity implements Runnable {
 	private Timer reloadTimer;
 	private Timer rlTextTimer;
 	private TimerTask rlTextTask;
-	private Timer rlvfTimer ;
+	private Timer rlvfTimer;
 	private TimerTask rlvfTask;
 	private Timer listTimer;
 	private TimerTask listTimerTask;
-	private int count =8;
-	private int page =1;
-	private int topicpage =1;
-	private int vfpage=1;
-	private int vfcount=10;
-	private int listpage=1;
-	private int listcount=10;
-	private boolean isTextProcessbar =false;
-	private boolean isVfProcessbar =false;
-	private myAdapter  adapter;
-	private Button  loadMoreButton;
-	private  View footview;
+	private int count = 8;
+	private int page = 1;
+	private int topicpage = 1;
+	private int vfpage = 1;
+	private int vfcount = 10;
+	private int listpage = 1;
+	private int listcount = 10;
+	private boolean isTextProcessbar = false;
+	private boolean isVfProcessbar = false;
+	private myAdapter mAdapter;
+	private Button loadMoreButton;
+	private View footview;
+	private Topic currenTopic;
 	private RelativeLayout reloading;
-	private Button reButton;
+	private ImageButton reButton;
 	int lastItem = 0;
-	int jishiqi=0;
-	int vfjishiqi=0;
-	private HashMap<String,Object> mparms;
-	private boolean isFirstBack=true;
+	int jishiqi = 0;
+	int vfjishiqi = 0;
+	private HashMap<String, Object> mparms;
+	private boolean isFirstBack = true;
+	private ArrayList<Object> taskList;
+	private View errorPage;
+	private View loadingPage;
+	private LinearLayout viewfillper;
+	private long startTimer;
+	private vfTask vtask;
+	private ListTask listTask;
+	private final static int ShowTopicList =5;
+	private final static int ShowLoadingPage =6;
+	private final static int autoReflush =7;
+	private final static int autoReflushList =8;
+	private final static int autoReflushTopicList  =9;
+	private final static int autoReflushQPostList  =10;
+	int cheshii =0;
+	private ImageCache imageCache;
+	private boolean isFirstPostLoading =true;
+	private View footviewNoMore;
+	myTopicListAdd myAddTask;
+	int LoadMoreSize =10;
+	int Itemtopicpage=1;
+	private LinearLayout rlayoutLoading;
+	ArrayList<Topic> myTopicList = new  ArrayList<Topic>();
+	private autoReflushPostView autoReflushPostViewTask;
+	private reflushPostView reflushPostViewTask;
 	public void run() {
-		programList = new ArrayList<Program>();
-		topicList = new ArrayList<Topic>();
-		downloder = new ImageDownloder();
-		programJsonArray =new JSONArray();
-		initView();
-		System.out.println();
+		initData();
+		initviewfilpper();
+		startTimer =System.currentTimeMillis();
+		imageCache = new ImageCache();
+		autoReflushTopicList();
+		if(autoReflushPostViewTask!=null){
+			reflushPostViewTask.cancel(true);
+			reflushPostViewTask=new reflushPostView();
+			reflushPostViewTask.execute();
+			reflushPostViewTask=null;
+		}else{
+			reflushPostViewTask=new reflushPostView();
+			reflushPostViewTask.execute();	
+			reflushPostViewTask=null;
+		}
+		autoReflushErrorPost();
+		autoReflushPostList();
+		// 监听listview，向下刷新
 		listview.setOnItemSelectedListener(new OnItemSelectedListener() {
 			@Override
 			public void onItemSelected(AdapterView<?> parent, View view,
 					int position, long id) {
-			   if(position ==topicList.size()){
-				   listview.setClickable(false);
-				   topicpage=topicpage+1;
-				   getTopicList(proHashMap);
-				   if(topicList.size()==0){
-					   Toast.makeText(mContext, "电影没有更多的话题，重新加载第一页", Toast.LENGTH_SHORT).show();
-					   topicpage =1;
-					   getTopicList(proHashMap);
-					   listview.setAdapter(new myAdapter());
-				   }else{
-					   listview.setAdapter(new myAdapter());
-				   }
-			   }
+				System.out.println("onitemselected postion ===="+position);
+				System.out.println("topicList.size()=======>"+topicList.size());
+				if (position == myTopicList.size()) {
+					listview.setClickable(false);
+					int visibility = footviewNoMore.getVisibility();
+					if(visibility!=View.VISIBLE){
+					if(LoadMoreSize<count){
+						return ;
+					}else{
+					topicpage = topicpage + 1;
+					if(null!=myAddTask){
+						myAddTask.cancel(true);
+						myAddTask = new myTopicListAdd();
+						myAddTask.execute();
+						myAddTask=null;
+					}else{
+						myAddTask = new myTopicListAdd();
+						myAddTask.execute();
+						myAddTask=null;
+					}
+					}
+				}
+				//	topicList=new ArrayList<Topic>();
+				}else{
+					listview.setClickable(true);
+				}
 			}
 			@Override
 			public void onNothingSelected(AdapterView<?> parent) {
 			}
 		});
-		try {
-			final JsonUtil ju = new JsonUtil();
-			new AsyncTask<Void, Void, Void>() {
-				@Override
-				protected void onPostExecute(Void result) {
-					rlLoading.setVisibility(View.GONE);
-					if (programJsonArray.length() == 0) {
-						Toast.makeText(mContext, "该电影没有相应的话题", Toast.LENGTH_SHORT).show();
-						Toast.makeText(mContext, "请按返回键退出", Toast.LENGTH_SHORT).show();
-						reloading.setVisibility(View.VISIBLE);
-						reButton.requestFocus();
-						reButton.setFocusable(true);
-						reButton.setOnClickListener(new OnClickListener() {
-							@Override
-							public void onClick(View v) {
-								run();				
-							}
-						});
-					} else {
-						for (int i = 0; i < programJsonArray.length(); i++) {
-							JSONObject jsProgram;
-							try {
-								jsProgram = programJsonArray.getJSONObject(i);
-								JSONObject2Program jp = new JSONObject2Program();
-								Program program = jp.getProgram(jsProgram);
-								programList.add(program);
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-						}
-						programId = getProgramId(mparms);
-						proHashMap = new HashMap<String, Object>();
-						getTopicList( mparms);
-						if(topicList.size()==0){
-							Toast.makeText(mContext, "topiclist该电影没有相应的话题", Toast.LENGTH_SHORT).show();
-							reloading.setVisibility(View.VISIBLE);
-							reButton.requestFocus();
-							reButton.setFocusable(true);
-							reButton.setOnClickListener(new OnClickListener() {
-								@Override
-								public void onClick(View v) {
-									run();				
-								}
-							});
+		listview.setOnItemClickListener(myItemClick);
+		reButton.setOnClickListener(reflushListener);
+		listview.setOnKeyListener(new OnKeyListener() {
+			@Override
+			public boolean onKey(View v, int keyCode, KeyEvent event) {
+				if(keyCode==KeyEvent.KEYCODE_2){
+					System.out.println("listview的listener已经被监听到");
+					System.currentTimeMillis();
+					System.out.println(System.currentTimeMillis());
+					long dis = getDis();
+					if(dis>1000){
+						viewfillper.setVisibility(View.GONE);
+						invisview.requestFocus();
+						invisview.setFocusable(true);
+					}
+				}
+				if(keyCode==KeyEvent.KEYCODE_1){
+					System.currentTimeMillis();
+					System.out.println(System.currentTimeMillis());
+					long dis = getDis();
+					if(dis>1000){
+						if(null!=listTask){
+							listTask.cancel(true);
+							listTask=new ListTask();
+							listTask.execute();
+							listTask=null;
 						}else{
-						showTopic = new StringBuffer();
-						for (int i = 0; i < topicList.size(); i++) {
-							String titleName = topicList.get(i).getTopic_name();
-							String username = topicList.get(i).getUser()
-									.getName();
-							String show = username + ":" + titleName + "    ";
-							showTopic.append(show);
+							listTask=new ListTask();
+							listTask.execute();
+							listTask=null;
 						}
-						topic_title.setVisibility(View.VISIBLE);
-						topic_title.setText(showTopic);
-						topic_title.setFocusable(true);
-						topic_title.requestFocus();
-						topic_title.setOnKeyListener(new OnKeyListener() {
-							@Override
-							public boolean onKey(View v, int keyCode,
-									KeyEvent event) {
-								if (keyCode == KeyEvent.KEYCODE_1) {
-									stopTimer(rlTextTimer, rlTextTask);	
-									if (topicList.size() == 0) {
-										Toast.makeText(mContext,
-										"没有相应的话题，请按返回键退出", Toast.LENGTH_SHORT).show();
-									} else {
-										System.out.println(keyCode);
-										vf.removeAllViews();
-										listview.setVisibility(View.VISIBLE);
-										listview.addFooterView(footview);
-										// changeview.setVisibility(View.VISIBLE);
-										adapter =new myAdapter();
-										listview.setAdapter(adapter);
-										if (null !=listTimer) {
-											listTimerTask.cancel();
-										}
-//										listTimer = new Timer();
-//										 listTimerTask = new TimerTask() {
-//											public void run() {
-//												Message message = new Message();
-//												message.what = RefalshListviewData;
-//												handler.sendMessage(message);
-//											}
-//										};
-//										listTimer.schedule(listTimerTask, 60*1000*2, 60*1000*5);
-										topic_title.setVisibility(View.GONE);
-										listview.requestFocus();
-										boolean b = listview.requestFocus();
-										System.out.println("listview" + b);
-									   //TODO
-										listview.setOnItemClickListener(new OnItemClickListener() {
-											@Override
-											public void onItemClick(
-													AdapterView<?> adapterview,
-													View view, int postition,
-													long id) {
-												vf.removeAllViews();
-												vf.setVisibility(View.GONE);
-												System.out.println(postition);
-												postList = new ArrayList<Post>();
-												if (timer != null) {
-													timer.cancel();
-												}
-												vf.stopFlipping();
-												vf.getBackground()
-														.setAlpha(100);
-												topic = topicList
-														.get(postition);
-												final int topicId = topic
-														.getId();
-												new AsyncTask<Void, Void, Void>() {
-
-													@Override
-													protected void onPostExecute(
-															Void result) {
-														for (int i = 0; i < jsonArray
-																.length(); i++) {
-															try {
-																JSONObject jsPost = jsonArray
-																		.getJSONObject(i);
-																JSONObject2Post jp = new JSONObject2Post();
-																Post post = jp
-																		.getPost(jsPost);
-																postList.add(post);
-															} catch (Exception e) {
-																e.printStackTrace();
-															}
-														}
-														for (int i = 0; i < postList
-																.size(); i++) {
-															View initfillperview = initviewfilpper();
-															initfillperview
-																	.setVisibility(View.VISIBLE);
-															tv_homeline_username
-																	.setText(postList
-																			.get(i)
-																			.getUser()
-																			.getName());
-															tv_homeline_comment
-																	.setText(postList
-																			.get(i)
-																			.getC());
-															String userimagepath = postList
-																	.get(i)
-																	.getUser()
-																	.getImage();
-															String filmpath = postList
-																	.get(i)
-																	.getTopic()
-																	.getProgram()
-																	.getImagePath();
-															try {
-																Bitmap userBitmap = downloder
-																		.imageDownloder(userimagepath);
-																Bitmap filmBitmap = downloder
-																		.imageDownloder(filmpath);
-																tv_homeline_filmimage
-																		.setImageBitmap(filmBitmap);
-																tv_homeline_userimage
-																		.setImageBitmap(userBitmap);
-															} catch (Exception e) {
-																e.printStackTrace();
-															}
-															vf.addView(initfillperview);
-															vf.setVisibility(View.VISIBLE);
-															isFirstLoading = false;
-															//TODO
-															if (null != rlvfTimer) {
-																rlvfTask.cancel();
-															}
-															 rlvfTimer = new Timer();
-															 rlvfTask = new TimerTask() {
-																public void run() {
-																	Message message = new Message();
-																	message.what = RefalshVFData;
-																	handler.sendMessage(message);
-																}
-															};
-															rlvfTimer.schedule(rlvfTask, 60*1000*2,60*1000*5);
-														}
-														if (postList.size() != 0) {
-															timer = new Timer();
-															if (null != imagetask) {
-																imagetask
-																		.cancel();
-															}
-															TimerTask imagetask = new TimerTask() {
-																public void run() {
-																	Message message = new Message();
-																	message.what = ChangeImage;
-																	handler.sendMessage(message);
-																}
-															};
-															timer.schedule(
-																	imagetask,
-																	1000*3, 6*1000);
-														} else {
-															Toast.makeText(
-																	mContext,
-																	"该话题没有评论",
-																	Toast.LENGTH_SHORT).show();
-														}
-														super.onPostExecute(result);
-													}
-
-													@Override
-													protected Void doInBackground(
-															Void... params) {
-														String path = "http://tvsrv.webhop.net:8080/api/topics/"
-																+ topicId
-																+ "/posts?page="+page+"&count="+count;
-														JsonUtil ju = new JsonUtil();
-														try {
-															jsonArray = ju
-																	.getSource(path);
-														} catch (Exception e) {
-															e.printStackTrace();
-														}
-														return null;
-													}
-
-												}.execute();
-											}
-										});
-										listview.setVisibility(View.VISIBLE);
-									}
-								} 
-								else if(keyCode==KeyEvent.KEYCODE_BACK){
-									topic_title.setVisibility(View.GONE);
-									return false;
-								}
-								return false;
-							}
-						});
-						listview.setOnKeyListener(new OnKeyListener() {
-							@Override
-							public boolean onKey(View view, int i,
-									KeyEvent keyevent) {
-								if (i == KeyEvent.KEYCODE_BACK) {
-									isFirstBack=false;
-									listview.setVisibility(View.GONE);
-									vf.setVisibility(View.VISIBLE);
-									stopTimer(listTimer, listTimerTask);
-									invisview.requestFocus();
-									invisview.setFocusableInTouchMode(true);
-									invisview.setFocusable(true);
-									boolean v = invisview.requestFocus();
-									System.out
-											.println("listview消失以后 invisview====》》"
-													+ v);
-									return true;
-								} else if (i == keyevent.KEYCODE_2) {
-									stopTimer(listTimer, listTimerTask);
-									listview.setVisibility(View.GONE);
-									vf.setVisibility(View.GONE);
-									topic_title.setText(showTopic);
-									topic_title.setVisibility(View.VISIBLE);
-									topic_title.requestFocus();
-									topic_title.setFocusable(true);
-									boolean b = topic_title.requestFocus();
-									if (null != rlTextTimer) {
-										rlTextTask.cancel();
-									}
-									 rlTextTimer = new Timer();
-									 rlTextTask = new TimerTask() {
-										public void run() {
-											Message message = new Message();
-											message.what = RefalshTextData;
-											handler.sendMessage(message);
-										}
-									};
-									
-									rlTextTimer.schedule(rlTextTask, 60*1000*2, 60*1000*5);
-								}
-								return false;
-							}
-						});
-						invisview.setOnKeyListener(new OnKeyListener() {
-							@Override
-							public boolean onKey(View view, int i,
-									KeyEvent keyevent) {
-								
-								 
-								if (i == KeyEvent.KEYCODE_1) {
-									listview.setVisibility(View.VISIBLE);
-									if (null !=listTimer) {
-										listTimerTask.cancel();
-									}
-									listTimer = new Timer();
-									 listTimerTask = new TimerTask() {
-										public void run() {
-											Message message = new Message();
-											message.what = RefalshListviewData;
-											handler.sendMessage(message);
-										}
-									};
-									listTimer.schedule(listTimerTask, 60*1000*2, 60*1000*5);
-								} else if (i == keyevent.KEYCODE_2) {
-									listview.setVisibility(View.GONE);
-									vf.setVisibility(View.GONE);
-									stopTimer(listTimer, listTimerTask);
-									topic_title.setText(showTopic);
-									topic_title.setVisibility(View.VISIBLE);
-									topic_title.requestFocus();
-									topic_title.setFocusable(true);
-								}
-//								else if(i==keyevent.KEYCODE_BACK){
-//									if(!isFirstBack){
-//									stopTimer(timer, imagetask);
-//									stopTimer(rlvfTimer, rlvfTask);
-//									System.out.println("我已经被捕捉到了");
-//									}
-//								}
-								return false;
-							}
-						});
-						 rlTextTimer = new Timer();
-						 rlTextTask = new TimerTask() {
-							public void run() {
-								Message message = new Message();
-								message.what = RefalshTextData;
-								handler.sendMessage(message);
-							}
-						};
 						
-						rlTextTimer.schedule(rlTextTask, 60*1000*2, 60*1000*5);
 					}
-					}
-					super.onPostExecute(result);
 				}
-				@Override
-				protected void onPreExecute() {
-					rlLoading.setVisibility(View.VISIBLE);
-					super.onPreExecute();
-				}
-				@Override
-				protected Void doInBackground(Void... params) {
-					try {
-						Thread.sleep(3000);
-					} catch (InterruptedException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-					try {
-						programJsonArray = ju.getSource(path);
-						if(programJsonArray.length()==0){
-							Toast.makeText(mContext, "网络错误，获取数据失败", Toast.LENGTH_SHORT).show();
-							//TODO
-						}
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-					return null;
-				}
-			}.execute();
+				return false;
+			}
+		});
+		errorreloading.setOnClickListener(errorreloadingListener);
+	}
+	// 得到数据库中的所有的电影
+	private void getAllProgram() {
+		JsonUtil ju = new JsonUtil();
+		String path = "http://tvsrv.webhop.net:8080/api/programs";
+		try {
+			programJsonArray = ju.getSource(path);
+			for (int i = 0; i < programJsonArray.length(); i++) {
+				JSONObject jsProgram;
+				jsProgram = programJsonArray.getJSONObject(i);
+				JSONObject2Program jp = new JSONObject2Program();
+				Program program = jp.getProgram(jsProgram);
+				programList.add(program);
+			}
 		} catch (Exception e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		if (null != rlTextTimer) {
-			rlTextTask.cancel();
+	}
+	private void setVf() {
+		    vf.removeAllViews();
+		for (int i = 0; i < postList.size(); i++) {
+			View initviewfilpper = initviewfilpper();
+			initviewfilpper.setVisibility(View.VISIBLE);
+			tv_homeline_username.setText(postList.get(i).getUser().getName());
+			tv_homeline_topic_comment.setText(postList.get(i).getTopic()
+					.getTopic_name());
+			String userimagepath = postList.get(i).getUser().getImage();
+			tv_homeline_posts_comment.setText(postList.get(i).getC());
+			String filmpath = postList.get(i).getTopic().getUser().getImage();
+			Bitmap bitmapByCache = imageCache.getBitmapByCache(filmpath);
+			try {
+			if(bitmapByCache!=null){
+				tv_homeline_userimage.setImageBitmap(bitmapByCache);
+			}
+			else{
+				Bitmap bitmapByInternet = imageCache.getBitmapByInternet(filmpath);
+				if(bitmapByInternet!=null){
+					tv_homeline_userimage.setImageBitmap(bitmapByInternet);
+					imageCache.putBitmap(filmpath, bitmapByInternet);
+				}
+			}
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			vf.addView(initviewfilpper);
 		}
 	}
+
+	// 得到电影的id
 	public int getProgramId(HashMap<String, Object> params) {
 		int id = 0;
 		String channelProgramName = (String) params.get("PROGRAM_NAME");
-		
+
 		for (int i = 0; i < programList.size(); i++) {
 			Program program = programList.get(i);
 			String programName = program.getTitle();
-			System.out.println("programName"+programName);
+			System.out.println("programName" + programName);
 			if (programName.indexOf(channelProgramName) >= 0) {
 				id = program.getId();
 			}
 		}
 		return id;
 	}
-	void initView() {
-		
-		topiclistview = View.inflate(mContext, R.layout.test, null);
+
+	// initview
+	void initData() {
+		programList = new ArrayList<Program>();
+		topicList = new ArrayList<Topic>();
+		postList=new ArrayList<Post>();
+		downloder = new ImageDownloder();
+		mAdapter=new myAdapter();
+		programJsonArray = new JSONArray();
+		topiclistview = View.inflate(mContext, R.layout.test1, null);
+		errorreloading=(Button) topiclistview.findViewById(R.id.errorreloading);
+		errorLinelayout=(LinearLayout) topiclistview.findViewById(R.id.errorLinelayout);
 		vf = (ViewFlipper) topiclistview.findViewById(R.id.topic_viewflipper);
+		viewfillper = (LinearLayout) topiclistview
+				.findViewById(R.id.viewfillper);
+		rlayoutLoading = (LinearLayout) topiclistview.findViewById(R.id.viewfillperloading);
+		viewfillper.setVisibility(View.GONE);
 		txt_loading = (TextView) topiclistview.findViewById(R.id.txt_loading);
 		RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(-1, -1);
 		mContainer.removeAllViews();
 		mContainer.addView(topiclistview, lp);
 		listview = (ListView) topiclistview.findViewById(R.id.subjectlist);
-		listview.getBackground().setAlpha(50);
+		LayoutInflater inflate = LayoutInflater.from(mContext);
+		footview = inflate.inflate(R.layout.footview, null);
+		footviewNoMore=inflate.inflate(R.layout.footview1, null);
+	
 		invisview = (Button) topiclistview.findViewById(R.id.invisview);
-		topiclistview.setFocusable(true);
 		topiclistview.requestFocus();
-		topic_title = (TextView) topiclistview.findViewById(R.id.topic_title);
-		topic_title.setVisibility(View.GONE);
+		topiclistview.setFocusable(true);
 		rlLoading = (RelativeLayout) topiclistview.findViewById(R.id.loading);
-		rlLoading.setVisibility(View.VISIBLE);
-		reloading=(RelativeLayout) topiclistview.findViewById(R.id.reloading);
-		reButton =(Button) topiclistview.findViewById(R.id.txt_reloading);
-		LayoutInflater inflate =LayoutInflater.from(mContext);
-		 footview = inflate.inflate(R.layout.footview, null);
+		// rlLoading.setVisibility(View.VISIBLE);
+		reloading = (RelativeLayout) topiclistview.findViewById(R.id.reloading);
+		reloading.getBackground().setAlpha(50);
+		reButton = (ImageButton) topiclistview.findViewById(R.id.txt_reloading);
+		// loadingPage=inflate.inflate(R.layout.loading, null);
+//		listview.addFooterView(footview);
+//		footview.setVisibility(View.VISIBLE);
+		listview.setAdapter(mAdapter);
 	}
-	public void getTopicList(final HashMap<String, Object> objects) {
-				listview.setClickable(true);
-		        topicList = new ArrayList<Topic>();
-				if (programId == 0) {
-					Toast.makeText(mContext, "数据库中没有相应的评论", Toast.LENGTH_SHORT).show();
-					Toast.makeText(mContext, "按返回退出", Toast.LENGTH_SHORT).show();
-				} else {
-					try {
-						JsonUtil ju = new JsonUtil();
-						String topicPath = "http://tvsrv.webhop.net:8080/api/programs/"
-								+ programId + "/topics?page="+topicpage+"&count="+count;
-						JSONArray topicJsonArray = ju.getSource(topicPath);
-						for (int i = 0; i < topicJsonArray.length(); i++) {
-							JSONObject jsTopic = topicJsonArray.getJSONObject(i);
-							JSONObject2Topic jt = new JSONObject2Topic();
-							Topic topic = jt.getTopic(jsTopic);
-							topicList.add(topic);
-						}
-					} catch (Exception e) {
-						e.printStackTrace();
-					
-					}}
+	// 通过progrma
+	public ArrayList<Topic> getTopicList() {
+		listview.setClickable(true);
+		topicList = new ArrayList<Topic>();
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
+		if (programId == 0) {
+			Toast.makeText(mContext, "数据库中没有相应的评论", Toast.LENGTH_SHORT).show();
+			Toast.makeText(mContext, "按返回退出", Toast.LENGTH_SHORT).show();
+		} else {
+			try {
+				JsonUtil ju = new JsonUtil();
+				String topicPath = "http://tvsrv.webhop.net:8080/api/programs/"
+						+ programId + "/topics?page=" + topicpage + "&count="
+						+ count;
+				JSONArray topicJsonArray = ju.getSource(topicPath);
+				System.out.println("topicpath=="+topicPath);
+				for (int i = 0; i < topicJsonArray.length(); i++) {
+					JSONObject jsTopic = topicJsonArray.getJSONObject(i);
+					JSONObject2Topic jt = new JSONObject2Topic();
+					Topic topic = jt.getTopic(jsTopic);
+					topicList.add(topic);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+
+			}
+		}
+		return topicList;
 	}
 
-	public void init(Context context, ViewGroup container,HashMap<String,Object> config) {
+	// 拿到相应的post的集合
+	public void getPostList(String postPath) {
+		postList = new ArrayList<Post>();
+
+		if (programId == 0) {
+			System.out.println("programid为空啊");
+		} else {
+			try {
+				JsonUtil ju = new JsonUtil();
+				JSONArray PostJsonArray = ju.getSource(postPath);
+				for (int i = 0; i < PostJsonArray.length(); i++) {
+					JSONObject jsPost = PostJsonArray.getJSONObject(i);
+					JSONObject2Post jt = new JSONObject2Post();
+					Post post = jt.getPost(jsPost);
+					postList.add(post);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	// 应用初始化
+	public void init(Context context, ViewGroup container,
+			HashMap<String, Object> config) {
 		mContext = context;
 		mContainer = container;
-		mparms =config;
-		
+		mparms = config;
+
 		Log.d("tv_topic", "config is:" + config);
 		Log.d("tv_topic", "config.Pragram is:" + config.get("PROGRAM_NAME"));
 		Log.d("tv_topic", "init has finished");
-		
+
 	}
 
+	// 用于listview的显示
 	public class myAdapter extends BaseAdapter {
-		protected int mycount= topicList.size();
+		protected int mycount = topicList.size();
+		private ArrayList<Topic> mylist = new ArrayList<Topic>();
+
+		public ArrayList getList() {
+			return mylist;
+		}
+
+		public void setList(ArrayList list) {
+			this.mylist = list;
+		}
 		@Override
 		public int getCount() {
-			return topicList.size();
+			return mylist.size();
 		}
 
 		@Override
 		public Object getItem(int i) {
 			return null;
 		}
-
 		@Override
 		public long getItemId(int i) {
 			return 0;
@@ -592,80 +434,173 @@ public class TvTopicClientActivity implements Runnable {
 		@Override
 		public View getView(final int position, View convertView,
 				ViewGroup viewgroup) {
+			System.out.println("getview 我又被执行了");
 			holder = new ViewHolder();
 			if (convertView == null) {
 				LayoutInflater flater = LayoutInflater.from(mContext);
 				convertView = flater.inflate(R.layout.listitem, null);
-				convertView.getBackground().setAlpha(100);
-				holder.topic_image = (ImageView) convertView
-						.findViewById(R.id.topic_image);
-				holder.topic_username = (TextView) convertView
-						.findViewById(R.id.topic_username);
 				holder.topic_title = (TextView) convertView
 						.findViewById(R.id.topic_title);
 				convertView.setTag(holder);
 			} else {
 				holder = (ViewHolder) convertView.getTag();
 			}
-			holder.topic_username.setText(topicList.get(position).getUser()
-					.getName());
-			holder.topic_title.setText(topicList.get(position).getTopic_name());
-			try {
-				Bitmap bitmap = downloder.imageDownloder(topicList
-						.get(position).getUser().getImage());
-				holder.topic_image.setImageBitmap(bitmap);
-			} catch (Exception e) {
-				e.printStackTrace();
+			if(mylist.size()!=0){
+			String title =mylist.get(position).getTopic_name();
+			if(title!=null){
+			holder.topic_title.setText(title);
+			}
 			}
 			return convertView;
 		}
 	}
 
+	// listview中的控件的初始化
 	public final class ViewHolder {
-		public ImageView topic_image;
-		public TextView topic_username;
 		public TextView topic_title;
-		public ImageView tv_homeline_filmimage;
-		public TextView tv_homeline_filmname;
-		public TextView tv_homeline_title;
 	}
-	View initviewfilpper() {
+
+	// 初始化viewfilpper中的控件
+	public View initviewfilpper() {
 		LayoutInflater inflater = LayoutInflater.from(mContext);
-		View viewfilpperitem = inflater.inflate(R.layout.mytopic_2, null);
-		tv_homeline_userimage = (ImageView) viewfilpperitem
+		View myviewfillper = inflater.inflate(R.layout.mytopic_2, null);
+		tv_homeline_userimage = (ImageView) myviewfillper
 				.findViewById(R.id.tv_homeline_userimage);
-		// tv_homeline_userimage.setAlpha(100);
-		tv_homeline_username = (TextView) viewfilpperitem
+		tv_homeline_username = (TextView) myviewfillper
 				.findViewById(R.id.tv_homeline_username);
-		tv_homeline_username.getBackground().setAlpha(100);
-		tv_homeline_comment = (TextView) viewfilpperitem
-				.findViewById(R.id.tv_homeline_comment);
-		tv_homeline_comment.getBackground().setAlpha(100);
-		tv_homeline_filmimage = (ImageView) viewfilpperitem
-				.findViewById(R.id.tv_homeline_filmimage);
-		tv_homeline_filmimage.getBackground().setAlpha(100);
-		return viewfilpperitem;
+		tv_homeline_topic_comment = (TextView) myviewfillper
+				.findViewById(R.id.tv_homeline_topic_comment);
+		tv_homeline_posts_comment = (TextView) myviewfillper
+				.findViewById(R.id.tv_homeline_posts_comment);
+		return myviewfillper;
 	}
-//TODO 
+
+	// TODO
+	// 发送message，来判断更新数据
 	Handler handler = new Handler() {
 		public void handleMessage(Message msg) {
 			super.handleMessage(msg);
 			switch (msg.what) {
 			case ChangeImage:
+				if(postList.size()!=0){
 				setImageAnimation(vf, postList);
+				}else{
+					reButton.setVisibility(View.VISIBLE);
+					System.out.println("postlist is size"+postList.size());
+				}
 				break;
 			case RefalshTextData:
-				loadMoreTextView();
+				// loadMoreTextView();
 				break;
 			case RefalshVFData:
 				loadMoreVfView();
 				break;
+			case ShowLoadingPage:
+				break;
+			case ShowTopicList:
+				if(postList.size()!=0){
+				mAdapter.notifyDataSetChanged();
+				listview.setVisibility(View.VISIBLE);
+				}
+				else{
+					errorLinelayout.setVisibility(View.VISIBLE);
+				}
+				break;
 			case RefalshListviewData:
-				loadMoreListview();
+			//	loadMoreListview();
+				break;
+			case autoReflushList:
+				int v = errorLinelayout.getVisibility();
+				if(v==View.VISIBLE){
+					errorLinelayout.setVisibility(View.GONE);
+				if(listTask!=null){
+					listTask.cancel(true);
+				listTask=new ListTask();
+				listTask.execute();
+				}else{
+					listTask=new ListTask();
+					listTask.execute();	
+				}
+				}
+				break;
+			case autoReflush:
+				if(postList.size()==0){
+					int visibility = reloading.getVisibility();
+					if(visibility==View.VISIBLE){
+						reloading.setVisibility(View.GONE);
+						if(isFirstPostLoading){
+							if(autoReflushPostViewTask!=null){
+								reflushPostViewTask.cancel(true);
+								reflushPostViewTask=new reflushPostView();
+								reflushPostViewTask.execute();
+								reflushPostViewTask=null;
+							}else{
+								reflushPostViewTask=new reflushPostView();
+								reflushPostViewTask.execute();	
+								reflushPostViewTask=null;
+							}
+						}else{
+							if(autoReflushPostViewTask!=null){
+								autoReflushPostViewTask.cancel(true);
+								autoReflushPostViewTask=new autoReflushPostView();
+								autoReflushPostViewTask.execute();
+								autoReflushPostViewTask=null;
+							}else{
+								autoReflushPostViewTask=new autoReflushPostView();
+								autoReflushPostViewTask.execute();	
+								autoReflushPostViewTask=null;
+							}
+							
+						}
+					}
+				}
+				break;
+			case autoReflushQPostList:
+				if(isFirstPostLoading){
+					if(autoReflushPostViewTask!=null){
+						reflushPostViewTask.cancel(true);
+						reflushPostViewTask=new reflushPostView();
+						reflushPostViewTask.execute();
+						reflushPostViewTask=null;
+					}else{
+						reflushPostViewTask=new reflushPostView();
+						reflushPostViewTask.execute();	
+						reflushPostViewTask=null;
+					}
+				}else{
+					if(autoReflushPostViewTask!=null){
+						autoReflushPostViewTask.cancel(true);
+						autoReflushPostViewTask=new autoReflushPostView();
+						autoReflushPostViewTask.execute();
+						autoReflushPostViewTask=null;
+					}else{
+						autoReflushPostViewTask=new autoReflushPostView();
+						autoReflushPostViewTask.execute();	
+						autoReflushPostViewTask=null;
+					}
+					
+				}
+				break;
+			case autoReflushTopicList:
+				int listvisivility = listview.getVisibility();
+				if(listvisivility==View.VISIBLE){
+					if(listTask!=null){
+						listTask.cancel(true);
+					listTask=new ListTask();
+					listTask.execute();
+					listTask=null;
+					}else{
+						listTask=new ListTask();
+						listTask.execute();	
+						listTask=null;
+					}
+				}
 				break;
 			}
 		}
 	};
+
+	// 设置显示的动画
 	private void setImageAnimation(ViewFlipper viewflipper,
 			ArrayList<Post> postListfrofillper) {
 		viewflipper.clearAnimation();
@@ -679,7 +614,8 @@ public class TvTopicClientActivity implements Runnable {
 		mCurrentPhotoIndex++;
 	}
 
-	private void stopTimer(Timer timers,TimerTask tasks) {
+	// 清除timer
+	private void stopTimer(Timer timers, TimerTask tasks) {
 		if (timers != null) {
 			timers.cancel();
 			timers = null;
@@ -706,149 +642,79 @@ public class TvTopicClientActivity implements Runnable {
 		}
 	}
 
-
-//TODO
-	public void loadMoreTextView() {
-		topicList = new ArrayList<Topic>();
-		page =page+1;
-		int titlevisiable=topic_title.getVisibility();
-		boolean b = (titlevisiable==visible);
-		System.out.println("是否为可见"+b);
-		if (titlevisiable == visible) {
-			topic_title.setVisibility(View.GONE);
-			new AsyncTask<Void, Void, Void>() {
-				@Override
-				protected void onPostExecute(Void result) {
-					    if(topicList.size()==0){
-					    	page=0;
-					    	topic_title.setVisibility(View.VISIBLE);
-					    	loadMoreTextView();
-					    }else{
-					    	isTextProcessbar=false;
-						showTopic = new StringBuffer();
-						for (int i = 0; i < topicList.size(); i++) {
-							String titleName = topicList.get(i).getTopic_name();
-							String username = topicList.get(i).getUser()
-									.getName();
-							String show = username + ":" + titleName + "    ";
-							showTopic.append(show);
-						}
-						topic_title.setVisibility(View.VISIBLE);
-						topic_title.setText(showTopic);
-						topic_title.setFocusable(true);
-						topic_title.requestFocus();
-					    }
-						super.onPostExecute(result);
-				}
-				@Override
-				protected void onPreExecute() {
-					if(!isTextProcessbar){
-					txt_loading.setText("正在加载最新数据");
-					isTextProcessbar =true;
-					}
-					super.onPreExecute();
-				}
-
-				@Override
-				protected Void doInBackground(Void... params) {
-					
-					jishiqi++;
-					System.out.println("textview asyn执行了"+jishiqi+"次");
-					JsonUtil ju = new JsonUtil();
-					try {
-							for (int i = 0; i < programJsonArray.length(); i++) {
-								JSONObject jsProgram;
-								try {
-									jsProgram = programJsonArray.getJSONObject(i);
-									JSONObject2Program jp = new JSONObject2Program();
-									Program program = jp.getProgram(jsProgram);
-									programList.add(program);
-								} catch (Exception e) {
-									e.printStackTrace();
-								}
-							}
-							proHashMap = new HashMap<String, Object>();
-							proHashMap.put("PROGRAM_NAME", "武林外传");
-							getTopicList(proHashMap);
-						
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-					return null;
-				}
-			}.execute();
-		}else{
-			stopTimer(rlTextTimer, rlTextTask);
-		}
-	}
-//TODO
+	// 增加更多的vf
 	public void loadMoreVfView() {
-		vfpage =vfpage+1;
-		int vfvisiable =vf.getVisibility();
+		vfpage = vfpage + 1;
+		int vfvisiable = vf.getVisibility();
 		if (vfvisiable == visible) {
 			vf.removeAllViews();
 			vf.setVisibility(View.GONE);
 			new AsyncTask<Void, Void, Void>() {
 				@Override
 				protected void onPostExecute(Void result) {
-					if(rejsonArray.length()==0){
-					  vfpage=0;
-					  vf.setVisibility(View.VISIBLE);
-					  loadMoreVfView();
-					}else{
-						isVfProcessbar=false;
-					for (int i = 0; i < rejsonArray.length(); i++) {
-						try {
-							JSONObject jsPost = rejsonArray.getJSONObject(i);
-							JSONObject2Post jp = new JSONObject2Post();
-							Post post = jp.getPost(jsPost);
-							postList.add(post);
-						} catch (Exception e) {
-							e.printStackTrace();
+					if (rejsonArray.length() == 0) {
+						vfpage = 0;
+						vf.setVisibility(View.VISIBLE);
+						loadMoreVfView();
+					} else {
+						isVfProcessbar = false;
+						for (int i = 0; i < rejsonArray.length(); i++) {
+							try {
+								JSONObject jsPost = rejsonArray
+										.getJSONObject(i);
+								JSONObject2Post jp = new JSONObject2Post();
+								Post post = jp.getPost(jsPost);
+								postList.add(post);
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
 						}
-					}
-					for (int i = 0; i < postList.size(); i++) {
-						View initfillperview = initviewfilpper();
-						initfillperview.setVisibility(View.VISIBLE);
-						tv_homeline_username.setText(postList.get(i).getUser()
-								.getName());
-						tv_homeline_comment.setText(postList.get(i).getC());
-						String userimagepath = postList.get(i).getUser()
-								.getImage();
-						String filmpath = postList.get(i).getTopic()
-								.getProgram().getImagePath();
-						try {
-							Bitmap userBitmap = downloder
-									.imageDownloder(userimagepath);
-							Bitmap filmBitmap = downloder
-									.imageDownloder(filmpath);
-							tv_homeline_filmimage.setImageBitmap(filmBitmap);
-							tv_homeline_userimage.setImageBitmap(userBitmap);
-						} catch (Exception e) {
-							e.printStackTrace();
+						for (int i = 0; i < postList.size(); i++) {
+							View initviewfilpper = initviewfilpper();
+							initviewfilpper.setVisibility(View.VISIBLE);
+							tv_homeline_username.setText(postList.get(i)
+									.getUser().getName());
+							tv_homeline_topic_comment.setText(postList.get(i)
+									.getC());
+							String userimagepath = postList.get(i).getUser()
+									.getImage();
+							String filmpath = postList.get(i).getTopic()
+									.getProgram().getImagePath();
+							try {
+								Bitmap userBitmap = downloder
+										.imageDownloder(userimagepath);
+								Bitmap filmBitmap = downloder
+										.imageDownloder(filmpath);
+								tv_homeline_userimage
+										.setImageBitmap(userBitmap);
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							vf.addView(initviewfilpper);
 						}
-						vf.addView(initfillperview);
-					}
 						vf.setVisibility(View.VISIBLE);
 						isFirstLoading = false;
-					super.onPostExecute(result);
+						super.onPostExecute(result);
 					}
 				}
+
 				@Override
 				protected void onPreExecute() {
-					if(!isVfProcessbar){
-					txt_loading.setText("正在加載最新数据");
-					isVfProcessbar=true;
+					if (!isVfProcessbar) {
+						txt_loading.setText("正在加載最新数据");
+						isVfProcessbar = true;
 					}
 					super.onPreExecute();
 				}
+
 				@Override
 				protected Void doInBackground(Void... params) {
 					vfjishiqi++;
-					System.out.println("vf sysn执行的次数为===》》"+vfjishiqi);
+					System.out.println("vf sysn执行的次数为===》》" + vfjishiqi);
 					int topicId = topic.getId();
 					String path = "http://tvsrv.webhop.net:8080/api/topics/"
-							+ topicId + "/posts?page="+vfpage+"&count="+vfcount;
+							+ topicId + "/posts?page=" + vfpage + "&count="
+							+ vfcount;
 					JsonUtil ju = new JsonUtil();
 					try {
 						rejsonArray = ju.getSource(path);
@@ -860,30 +726,450 @@ public class TvTopicClientActivity implements Runnable {
 			}.execute();
 		}
 	}
-	public void loadMoreListview() {
-		listpage =listpage+1;
-		 int listviewvisiable=listview.getVisibility();
-		 if (listviewvisiable == invisible) {
-			try {
-				JsonUtil ju = new JsonUtil();
-				String topicPath = "http://tvsrv.webhop.net:8080/api/programs/"
-						+ programId + "/topics?page="+listpage+"&count="+listcount+"";
-				JSONArray topicJsonArray = ju.getSource(topicPath);
-				if(topicJsonArray.length()==0){
-					listpage =0;
-					loadMoreListview();
-				}else{
-				for (int i = 0; i < topicJsonArray.length(); i++) {
-					JSONObject jsTopic = topicJsonArray.getJSONObject(i);
-					JSONObject2Topic jt = new JSONObject2Topic();
-					Topic topic = jt.getTopic(jsTopic);
-					topicList.add(topic);
-				}
-			listview.setAdapter(new myAdapter());
-				} 
-			}catch (Exception e) {
-				e.printStackTrace();
+
+	// listview进行刷新
+//	public void loadMoreListview() {
+//		listpage = listpage + 1;
+//		int listviewvisiable = listview.getVisibility();
+//		if (listviewvisiable == invisible) {
+//			try {
+//				JsonUtil ju = new JsonUtil();
+//				String topicPath = "http://tvsrv.webhop.net:8080/api/programs/"
+//						+ programId + "/topics?page=" + listpage + "&count="
+//						+ listcount + "";
+//				JSONArray topicJsonArray = ju.getSource(topicPath);
+//				if (topicJsonArray.length() == 0) {
+//					listpage = 0;
+//					loadMoreListview();
+//				} else {
+//					for (int i = 0; i < topicJsonArray.length(); i++) {
+//						JSONObject jsTopic = topicJsonArray.getJSONObject(i);
+//						JSONObject2Topic jt = new JSONObject2Topic();
+//						Topic topic = jt.getTopic(jsTopic);
+//						topicList.add(topic);
+//					}
+//					listview.setAdapter(new myAdapter());
+//				}
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
+//		}
+//	}
+
+	public void showProgress(RelativeLayout rl) {
+		// 把进度对话框显示出来
+		AlphaAnimation aa = new AlphaAnimation(0, 1);
+		aa.setDuration(1000);
+		rl.setAnimation(aa);
+		rl.setAnimationCacheEnabled(false);
+		rl.setVisibility(View.VISIBLE);
+	}
+	// 关闭进度条
+	public void hideProgress(RelativeLayout rl) {
+		AlphaAnimation aa = new AlphaAnimation(1, 0);
+		aa.setDuration(2000);
+		rl.setAnimation(aa);
+		rl.setAnimationCacheEnabled(false);
+		rl.setVisibility(View.GONE);
+	}
+	// 为了重复加载和刷新加载，重新加载listview,第一次进入时加载
+	class ListTask extends AsyncTask {
+				@Override
+		protected void onPreExecute() {
+			LoadMoreSize=10;
+			myTopicList =new ArrayList<Topic>();
+			System.out.println("listtask我已经执行了");
+			viewfillper.setVisibility(View.VISIBLE);
+			rlayoutLoading.setVisibility(View.VISIBLE);
+			listview.removeFooterView(footviewNoMore);
+			listview.removeFooterView(footview);
+			footview.setVisibility(View.GONE);
+			footviewNoMore.setVisibility(View.GONE);
+			listview.addFooterView(footview);
+			footview.setVisibility(View.VISIBLE);
+			super.onPreExecute();
+		}
+		@Override
+		protected void onPostExecute(Object result) {
+			if(topicList.size()!=0){
+			rlayoutLoading.setVisibility(View.GONE);
+			listview.setVisibility(View.GONE);
+			mAdapter.setList(topicList);
+	//	    mAdapter.notifyDataSetChanged();
+			listview.setAdapter(mAdapter);
+			listview.setVisibility(View.VISIBLE);
+			listview.requestFocus();
+			listview.setFocusable(true);
+			for (int i = 0; i < topicList.size(); i++) {
+				myTopicList.add(topicList.get(i));
 			}
+			}else{
+				rlayoutLoading.setVisibility(View.GONE);
+				errorLinelayout.setVisibility(View.VISIBLE);
+			}
+			super.onPostExecute(result);
+		}
+		@Override
+		protected Object doInBackground(Object... params) {
+			 getTopicList();
+			return null;
 		}
 	}
+	// 下拉进行刷新数据
+	class myTopicListAdd extends AsyncTask {
+		protected void onPostExecute(Object result) {
+			if (topicList.size() == 0) {
+				LoadMoreSize =topicList.size();
+				mAdapter.setList(myTopicList);
+				mAdapter.notifyDataSetChanged();
+				listview.removeFooterView(footview);
+				footview.setVisibility(View.GONE);
+				listview.addFooterView(footviewNoMore);
+				footviewNoMore.setVisibility(View.VISIBLE);
+				topicpage=1;
+				return;
+//				listview.removeFooterView(footview);
+//				listview.addFooterView(footviewNoMore);
+//				topicList =myTopicList;
+//				mAdapter.notifyDataSetChanged();
+//				listview.requestFocus();
+//				listview.setFocusable(true);
+			}else if((topicList.size()<count)){
+					LoadMoreSize =topicList.size();
+					listview.removeFooterView(footview);
+					footview.setVisibility(View.GONE);
+					listview.addFooterView(footviewNoMore);
+					footviewNoMore.setVisibility(View.VISIBLE);
+					topicpage=1;
+				for (int i = 0; i < topicList.size(); i++) {
+					Topic t =topicList.get(i);
+					myTopicList.add(t);
+				}
+				mAdapter.setList(myTopicList);
+			listview.setVisibility(View.GONE);
+			mAdapter.notifyDataSetChanged();
+			listview.setVisibility(View.VISIBLE);
+			listview.requestFocus();
+			listview.setFocusable(true);
+			}
+			else if(topicList.size()==count){
+				LoadMoreSize =topicList.size();
+				for (int i = 0; i < topicList.size(); i++) {
+					myTopicList.add(topicList.get(i));
+				}
+				mAdapter.setList(myTopicList);
+				listview.setVisibility(View.GONE);
+				mAdapter.notifyDataSetChanged();
+				listview.setVisibility(View.VISIBLE);
+				listview.requestFocus();
+				listview.setFocusable(true);
+			}
+			super.onPostExecute(result);
+		}
+		@Override
+		protected void onPreExecute() {
+			if(topicList.size()<count){
+				LoadMoreSize =topicList.size();
+				listview.removeFooterView(footview);
+				footview.setVisibility(View.GONE);
+				listview.addFooterView(footviewNoMore);
+				footviewNoMore.setVisibility(View.VISIBLE);
+				myAddTask.cancel(true);
+			}
+			super.onPreExecute();
+		}
+		@Override
+		protected Object doInBackground(Object... params) {
+			if(topicList.size()>=count){
+			getTopicList();
+			}
+			return null;
+		}
+	}
+	// 重新加载vf
+	class vfTask extends AsyncTask {
+		@Override
+		protected void onPreExecute() {
+			showProgress(rlLoading);
+			super.onPreExecute();
+		}
+
+		@Override
+		protected void onPostExecute(Object result) {
+			hideProgress(rlLoading);
+			vf.setVisibility(View.VISIBLE);
+			if(postList.size()!=0){
+			setVf();
+			setPostTimerStart();
+			}else{
+				Toast.makeText(mContext, "这个话题没有评论", 1).show();
+				reButton.setVisibility(View.VISIBLE);
+				reButton.requestFocus();
+				reButton.setFocusable(true);
+			}
+			super.onPostExecute(result);
+		}
+		@Override
+		protected Object doInBackground(Object... params) {
+			String path =(String) params[0];
+			getPostList(path);
+			return null;
+		}
+	}
+	View.OnClickListener  reflushListener = new OnClickListener() {
+		@Override
+		public void onClick(View v) {
+			reloading.setVisibility(View.GONE);
+			if(autoReflushPostViewTask!=null){
+				reflushPostViewTask.cancel(true);
+				reflushPostViewTask=new reflushPostView();
+				reflushPostViewTask.execute();
+				reflushPostViewTask=null;
+			}else{
+				reflushPostViewTask=new reflushPostView();
+				reflushPostViewTask.execute();	
+				reflushPostViewTask=null;
+			}
+		}
+	};
+	OnClickListener errorreloadingListener = new OnClickListener() {
+		@Override
+		public void onClick(View v) {
+			if(listTask!=null){
+				listTask.cancel(true);
+			listTask=new ListTask();
+			listTask.execute();
+			listTask=null;
+			}else{
+				listTask=new ListTask();
+				listTask.execute();	
+				listTask=null;
+			}
+		}
+	};
+	View.OnKeyListener vfKeyListener = new OnKeyListener() {
+		@Override
+		public boolean onKey(View v, int keyCode, KeyEvent event) {
+			if (KeyEvent.KEYCODE_1 == keyCode) {
+				System.currentTimeMillis();
+				System.out.println(System.currentTimeMillis());
+				long dis = getDis();
+				if(dis>1000){
+					if(listTask!=null){
+						listTask.cancel(true);
+					listTask=new ListTask();
+					listTask.execute();
+					}else{
+						listTask=new ListTask();
+						listTask.execute();	
+					}
+//				Toast.makeText(mContext, "你已经被点击了", 1).show();
+//				System.out.println("你被点击了"+cheshii);
+//				cheshii++;
+//				viewfillper.setVisibility(View.VISIBLE);
+//				topic_listflipper.setVisibility(View.VISIBLE);
+//				topic_listflipper.setDisplayedChild(0);
+//				int displayedChild = topic_listflipper.getDisplayedChild();
+//				ListTask Listtask = new ListTask();
+//				Listtask.execute();
+//				new Thread(new Runnable() {
+//					@Override
+//					public void run() {
+//						getTopicList();
+//						Message msg = new Message();
+//						msg.what=ShowTopicList;
+//						handler.handleMessage(msg);
+//					}
+//				}).run();
+//				new Thread(new Runnable() {
+//					@Override
+//					public void run() {
+//						Message msgloading =new Message();
+//						msgloading.what=ShowLoadingPage;
+//						handler.handleMessage(msgloading);
+//					}
+//				}).run();
+			}
+			}
+			return false;
+		}
+	};
+	// 对listview的item点击进行响应
+	OnItemClickListener myItemClick = new OnItemClickListener() {
+		@Override
+		public void onItemClick(AdapterView<?> parent, View view, int position,
+				long id) {
+			long currenttimer=System.currentTimeMillis();
+			long distime =currenttimer-startTimer;
+			System.out.println("distime===========>"+distime);
+			if(distime>1000){
+			isFirstPostLoading =false;
+			startTimer=currenttimer;
+			stopTimer(timer, imagetask);
+			currenTopic =myTopicList.get(position);
+			 int currenTopicid = myTopicList.get(position).getId();
+			System.out.println("topicid wei"+currenTopicid);
+			System.out.println("topicList.size()=======>"+topicList.size());
+			String topicpath = "http://tvsrv.webhop.net:8080/api/topics/"
+					+ currenTopicid + "/posts?page=" + Itemtopicpage + "&count=" + count;
+			if (vtask != null) {
+				vtask.cancel(true);
+				vtask = new vfTask();
+				vtask.execute(topicpath);
+				vtask=null;
+			} else {
+				vf.setVisibility(View.GONE);
+				stopTimer(timer, imagetask);
+				vtask = new vfTask();
+				vtask.execute(topicpath);
+			}
+		}else{
+			int i=0;
+			i++;
+			Toast.makeText(mContext, "你点击太平凡了"+i, 0);
+		}
+		}
+	};
+	private void setPostTimerStart() {
+		timer = new Timer();
+		if (null != imagetask) {
+			imagetask.cancel();
+		}
+		 imagetask = new TimerTask() {
+			public void run() {
+				Message message = new Message();
+				message.what = ChangeImage;
+				handler.sendMessage(message);
+			}
+		};
+		timer.schedule(imagetask, 1000 * 5, 12* 1000);
+	}
+	//判断两个动作的间隔时间
+	public long getDis(){
+		long currenttimer=System.currentTimeMillis();
+		long distime =currenttimer-startTimer;
+		System.out.println("distime===========>"+distime);
+		startTimer=currenttimer;
+		return distime;
+	}
+	//第一次進入時執行的asyn方法，還有刷新的時候執行
+	class reflushPostView extends AsyncTask {
+		// 这里直接调用asyntask为了初始化一些数据，再次加载不在调用此方法
+					@Override
+					protected void onPostExecute(Object result) {
+						hideProgress(rlLoading);
+						if(postList.size()!=0){
+						setVf();
+						vf.setVisibility(View.VISIBLE);
+						invisview.requestFocus();
+						invisview.setFocusable(true);
+						boolean bbbbbb = invisview.requestFocus();
+						invisview.setOnKeyListener(vfKeyListener);
+						setPostTimerStart();
+						}else{
+							vf.setVisibility(View.GONE);
+							reloading.setVisibility(View.VISIBLE);
+							reButton.requestFocus();
+							reButton.setFocusable(true);
+						}
+						super.onPostExecute(result);
+					}
+					//開啟定時循環展示
+					@Override
+					protected void onPreExecute() {
+						showProgress(rlLoading);
+						reloading.setVisibility(View.GONE);
+						super.onPreExecute();
+					}
+					@Override
+					protected Void doInBackground(Object... params) {
+						getAllProgram();
+						programId = getProgramId(mparms);
+						if(programId!=0){
+						 String BeginPath = "http://tvsrv.webhop.net:8080/api/programs/"
+								+ programId + "/posts?page=" + topicpage + "&count=" + count;
+						getPostList(BeginPath);
+						}
+						return null;
+					}
+	}
+	public void autoReflushErrorPost(){
+		Timer autotimer = new Timer();
+		TimerTask autotimertask = new TimerTask() {
+			public void run() {
+				Message message = new Message();
+				message.what = autoReflush;
+				handler.sendMessage(message);
+				Message msg =new Message();
+				msg.what=autoReflushList;
+				handler.handleMessage(msg);
+			}
+		};
+		autotimer.schedule(autotimertask, 1000 * 5, 10 * 1000);
+	}
+	public void autoReflushTopicList(){
+		Timer autotimer = new Timer();
+		TimerTask autotimertask = new TimerTask() {
+			public void run() {
+				Message message = new Message();
+				message.what = autoReflushTopicList;
+				handler.sendMessage(message);
+			}
+		};
+		autotimer.schedule(autotimertask, 1000 * 60, 60*4*1000);
+	}
+	//自动刷新评论列表
+	public void autoReflushPostList(){
+		Timer autotimer = new Timer();
+		TimerTask autotimertask = new TimerTask() {
+			public void run() {
+				Message message = new Message();
+				message.what = autoReflushQPostList;
+				handler.sendMessage(message);
+			}
+		};
+		autotimer.schedule(autotimertask, 1000 * 60*2, 3*60*1000);
+	}
+	//執行的asyn方法，定时刷新时执行
+		class  autoReflushPostView extends AsyncTask{
+						@Override
+						protected void onPostExecute(Object result) {
+							hideProgress(rlLoading);
+							if(viewfillper.getVisibility()!=View.VISIBLE){
+								invisview.requestFocus();
+								invisview.setFocusable(true);
+								invisview.setOnKeyListener(vfKeyListener);
+							}
+							if(postList.size()!=0){
+							setVf();
+							vf.setVisibility(View.VISIBLE);
+							setPostTimerStart();
+							}else{
+								vf.setVisibility(View.GONE);
+								reloading.setVisibility(View.VISIBLE);
+								reButton.requestFocus();
+								reButton.setFocusable(true);
+							}
+							
+							super.onPostExecute(result);
+						}
+						//開啟定時循環展示
+						@Override
+						protected void onPreExecute() {
+							showProgress(rlLoading);
+							reloading.setVisibility(View.GONE);
+							super.onPreExecute();
+						}
+						@Override
+						protected Void doInBackground(Object... params) {
+							int topicid =currenTopic.getId();
+							if(topicid!=0){
+							 String autopath = "http://tvsrv.webhop.net:8080/api/topics/"
+									+ topicid + "/posts?page=" + topicpage + "&count=" + count;
+							 System.out.println("autopath==="+autopath);
+							getPostList(autopath);
+							}
+							return null;
+						}
+		}
 }
